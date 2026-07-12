@@ -96,7 +96,49 @@
 
 ---
 
-### 5. 不可信内容标记（Untrusted content marking）
+### 5. `content` 与 `details` 的明确分工（Result shaping for AI vs UI）
+
+> 来源：pi 内置 `read` / `bash` / `grep` 工具
+
+pi 的 `AgentToolResult<T>` 已经明确分层：
+
+- `content: (TextContent | ImageContent)[]` —— **给 AI 看的**。必须包含模型理解结果、决定下一步行动所需的一切信息。
+- `details: T` —— **给 UI/日志看的**。结构化元数据，用于 `renderResult` 渲染更漂亮的界面，或写入 telemetry。
+
+**关键反模式：** 把“下一步操作建议”只放在 `details` 里。模型看不到 `details`，所以任何需要模型知道的信息都必须出现在 `content` 中。
+
+**推荐做法：**
+
+- `content` 里放：正文结果、截断提示、错误说明、可操作的下一步建议（如 `"Use offset=201 to continue"`、`"Use limit=200 for more"`）。
+- `details` 里放：结构化元数据，如 `truncation`、`fullOutputPath`、`provider`、`attempts`、`matchLimitReached`。
+- 保持 `details` 类型稳定，便于 UI 组件统一处理。
+
+**示例：**
+
+```ts
+// content（给 AI）
+"Line 1: ...\nLine 2: ...\n\n[Showing lines 1-200 of 5000. Use offset=201 to continue.]"
+
+// details（给 UI）
+{
+  truncation: {
+    truncated: true,
+    outputLines: 200,
+    totalLines: 5000,
+    fullOutputPath: "/tmp/pi-bash-xxx.txt"
+  }
+}
+```
+
+**Checklist：**
+
+- [ ] 模型需要知道的截断/错误/下一步信息是否都在 `content` 中？
+- [ ] `details` 是否只放 UI/日志 需要的结构化元数据？
+- [ ] `details` 字段命名是否稳定、可复用？
+
+---
+
+### 6. 不可信内容标记（Untrusted content marking）
 
 > 来源：Hermes `<untrusted_tool_result>`
 
@@ -116,7 +158,7 @@
 
 ---
 
-### 6. 缓存与可用性稳定（Caching & availability stability）
+### 7. 缓存与可用性稳定（Caching & availability stability）
 
 > 来源：Hermes `check_fn` TTL + grace window、Claude Code WebFetch 15 分钟缓存
 
@@ -135,7 +177,7 @@
 
 ---
 
-### 7. 把“何时用”写进工具描述（Usage guidance in description）
+### 8. 把“何时用”写进工具描述（Usage guidance in description）
 
 > 来源：Codex `.md` description、Hermes / OpenClaw 工具 description
 
@@ -156,7 +198,7 @@
 
 ---
 
-### 8. Provider 专有选项隔离（Provider-specific option isolation）
+### 9. Provider 专有选项隔离（Provider-specific option isolation）
 
 > 来源：OpenClaw `openai: {...}` / `fal: {...}` 嵌套对象
 
@@ -187,7 +229,7 @@
 
 ---
 
-### 9. 响应长度 / Token 预算控制（Response length governance）
+### 10. 响应长度 / Token 预算控制（Response length governance）
 
 > 来源：Codex `response_length`、Hermes `budget_config`、Claude Code 10MB/100K 字符限制
 
@@ -209,7 +251,7 @@
 
 ---
 
-### 10. 安全失败对模型透明（Security failures as model-readable errors）
+### 11. 安全失败对模型透明（Security failures as model-readable errors）
 
 > 来源：Hermes SSRF / token-in-URL 拒绝、OpenClaw provider fallback、Claude Code 域名预检
 
@@ -236,7 +278,7 @@
 
 - **长任务进度与异步化**（progress / background task）：OpenClaw / Hermes 的做法。grapi 第一版工具都是同步的，未来遇到生视频/长队列任务时需要补充。
 - **模型自省模式** `action="list"`：动态 schema 之外，是否每个多 backend 工具都应该提供 list/status 动作？
-- **工具返回的统一外层结构**：pi 负责 `{ content, details }` 外壳，但 `details` 内部字段（`error` / `truncated` / `provider` / `attempts` 等）是否需要 harness 级统一约定？
+- **`content` 与 `details` 的分工**：pi 已经确定 `content` 给 AI、`details` 给 UI/日志，但 harness 是否需要约定 `details` 内部字段（`truncation` / `provider` / `attempts` / `fullOutputPath` 等）的命名规范？
 
 ---
 
@@ -246,6 +288,8 @@
 - [ ] 多 backend 时，description 是否反映了当前能力边界？
 - [ ] 错误消息是否告诉模型“下一步怎么做”？
 - [ ] 图片/大文本是否控制了进入上下文的 token 量？
+- [ ] `content` 是否包含模型需要知道的所有截断/错误/下一步信息？
+- [ ] `details` 是否只包含 UI/日志 需要的结构化元数据？
 - [ ] 外部结果是否被标记为不可信并处理了注入风险？
 - [ ] 只读工具是否有缓存？可用性探测是否有 TTL / grace window？
 - [ ] description 是否写清楚了“何时用、何时不用、如何回退”？
