@@ -3,54 +3,56 @@ import {
   type WebExtractInput,
   type WebExtractProvider,
   type WebExtractResponse,
-  type WebExtractResult,
   type WebSearchInput,
   type WebSearchProvider,
   type WebSearchResponse,
-  type WebSearchResult,
 } from "./types.js";
 
-interface TavilySearchResult {
+/** Tavily /search wire result (snake_case, as sent over HTTP). */
+interface TavilySearchWireResult {
   title: string;
   url: string;
   content: string;
   score?: number;
   published_date?: string;
-  favicon?: string;
-  raw_content?: string;
-  images?: unknown[];
 }
 
-interface TavilySearchResponse {
+/** Tavily /search wire response. */
+interface TavilySearchWireResponse {
   query: string;
-  results: TavilySearchResult[];
+  results: TavilySearchWireResult[];
   answer?: string;
-  images?: unknown[];
   response_time?: string | number;
   usage?: unknown;
-  request_id?: string;
-  auto_parameters?: unknown;
 }
 
-interface TavilyExtractResult {
+/** Tavily /extract wire result. */
+interface TavilyExtractWireResult {
   url: string;
   raw_content: string;
   images?: string[];
   favicon?: string;
 }
 
-interface TavilyExtractFailedResult {
+/** Tavily /extract wire failed result (partial-success semantics). */
+interface TavilyExtractWireFailedResult {
   url: string;
   error: string;
 }
 
-interface TavilyExtractResponse {
-  results: TavilyExtractResult[];
-  failed_results?: TavilyExtractFailedResult[];
-  response_time?: number;
+/** Tavily /extract wire response. */
+interface TavilyExtractWireResponse {
+  results: TavilyExtractWireResult[];
+  failed_results?: TavilyExtractWireFailedResult[];
+  response_time?: string | number;
   usage?: unknown;
 }
 
+/**
+ * Tavily API client — a minimal fetch-based wrapper around POST /search and
+ * POST /extract, modelled on the shape of the official @tavily/core SDK but
+ * with zero runtime dependencies.
+ */
 export class TavilyProvider implements WebSearchProvider, WebExtractProvider {
   constructor(
     private readonly apiKey: string,
@@ -58,38 +60,47 @@ export class TavilyProvider implements WebSearchProvider, WebExtractProvider {
   ) {}
 
   async search(input: WebSearchInput): Promise<WebSearchResponse> {
-    const data = await this.request<TavilySearchResponse>("/search", {
+    const data = await this.post<TavilySearchWireResponse>("/search", {
       query: input.query,
       max_results: input.limit ?? DEFAULT_SEARCH_LIMIT,
     });
-
     return {
       query: data.query,
-      results: data.results.map((r) => this.toWebSearchResult(r)),
+      results: data.results.map((r) => ({
+        title: r.title,
+        url: r.url,
+        content: r.content,
+        score: r.score,
+        publishedAt: r.published_date,
+      })),
       answer: data.answer,
       usage: data.usage,
-      responseTime: this.parseResponseTime(data.response_time),
+      responseTime: normalizeResponseTime(data.response_time),
       raw: data,
     };
   }
 
   async extract(input: WebExtractInput): Promise<WebExtractResponse> {
-    const data = await this.request<TavilyExtractResponse>("/extract", {
+    const data = await this.post<TavilyExtractWireResponse>("/extract", {
       urls: [input.url],
       format: "markdown",
     });
-
     return {
-      results: data.results.map((r) => this.toWebExtractResult(r)),
+      results: data.results.map((r) => ({
+        url: r.url,
+        content: r.raw_content,
+        images: r.images,
+        favicon: r.favicon,
+      })),
       failed: data.failed_results?.map((f) => ({ url: f.url, error: f.error })) ?? [],
       usage: data.usage,
-      responseTime: data.response_time,
+      responseTime: normalizeResponseTime(data.response_time),
       raw: data,
     };
   }
 
-  private async request<T>(endpoint: string, body: unknown): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+  private async post<T>(path: string, body: unknown): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -97,37 +108,25 @@ export class TavilyProvider implements WebSearchProvider, WebExtractProvider {
       },
       body: JSON.stringify(body),
     });
-
     if (!response.ok) {
-      throw new Error(`Tavily POST ${endpoint} failed: ${response.status} ${response.statusText}`);
+      let message = `Tavily POST ${path} failed: ${response.status} ${response.statusText}`;
+      try {
+        const errorBody = (await response.json()) as { detail?: { error?: string } };
+        if (errorBody?.detail?.error) {
+          message = `Tavily ${response.status}: ${errorBody.detail.error}`;
+        }
+      } catch {
+        // response body wasn't JSON; keep the default status-based message
+      }
+      throw new Error(message);
     }
-
     return (await response.json()) as T;
   }
+}
 
-  private toWebSearchResult(result: TavilySearchResult): WebSearchResult {
-    return {
-      title: result.title,
-      url: result.url,
-      content: result.content,
-      score: result.score,
-      publishedAt: result.published_date,
-    };
-  }
-
-  private toWebExtractResult(result: TavilyExtractResult): WebExtractResult {
-    return {
-      url: result.url,
-      content: result.raw_content,
-      images: result.images,
-      favicon: result.favicon,
-    };
-  }
-
-  private parseResponseTime(value: string | number | undefined): number | undefined {
-    if (value === undefined) return undefined;
-    if (typeof value === "number") return value;
-    const parsed = Number.parseFloat(value);
-    return Number.isNaN(parsed) ? undefined : parsed;
-  }
+/** Normalize Tavily's unstable response_time (number | string) to a number. */
+function normalizeResponseTime(value: string | number | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  const n = typeof value === "number" ? value : Number.parseFloat(value);
+  return Number.isNaN(n) ? undefined : n;
 }
