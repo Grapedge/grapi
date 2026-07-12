@@ -18,7 +18,7 @@ const WebSearchParameters = Type.Object({
       default: DEFAULT_SEARCH_LIMIT,
       minimum: 1,
       maximum: 10,
-      description: "Maximum number of results (1-10, default 5)",
+      description: `Maximum number of results (1-10, default ${DEFAULT_SEARCH_LIMIT})`,
     }),
   ),
 });

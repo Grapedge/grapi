@@ -100,7 +100,7 @@ describe("TavilyProvider", () => {
 
       const provider = new TavilyProvider("test-key");
       await expect(provider.search({ query: "hello" })).rejects.toThrow(
-        "Tavily search failed: 401 Unauthorized",
+        "Tavily POST /search failed: 401 Unauthorized",
       );
     });
   });
@@ -168,7 +168,7 @@ describe("TavilyProvider", () => {
 
       const provider = new TavilyProvider("test-key");
       await expect(provider.extract({ url: "https://example.com" })).rejects.toThrow(
-        "Tavily extract failed: 500 Internal Server Error",
+        "Tavily POST /extract failed: 500 Internal Server Error",
       );
     });
   });

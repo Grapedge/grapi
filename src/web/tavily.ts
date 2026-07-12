@@ -1,14 +1,14 @@
-import type {
-  WebExtractInput,
-  WebExtractProvider,
-  WebExtractResponse,
-  WebExtractResult,
-  WebSearchInput,
-  WebSearchProvider,
-  WebSearchResponse,
-  WebSearchResult,
+import {
+  DEFAULT_SEARCH_LIMIT,
+  type WebExtractInput,
+  type WebExtractProvider,
+  type WebExtractResponse,
+  type WebExtractResult,
+  type WebSearchInput,
+  type WebSearchProvider,
+  type WebSearchResponse,
+  type WebSearchResult,
 } from "./types.js";
-import { DEFAULT_SEARCH_LIMIT } from "./types.js";
 
 interface TavilySearchResult {
   title: string;
@@ -99,8 +99,7 @@ export class TavilyProvider implements WebSearchProvider, WebExtractProvider {
     });
 
     if (!response.ok) {
-      const action = endpoint === "/search" ? "search" : "extract";
-      throw new Error(`Tavily ${action} failed: ${response.status} ${response.statusText}`);
+      throw new Error(`Tavily POST ${endpoint} failed: ${response.status} ${response.statusText}`);
     }
 
     return (await response.json()) as T;
