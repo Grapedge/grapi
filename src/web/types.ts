@@ -5,6 +5,9 @@
  * (Tavily today, searxng/exa/firecrawl tomorrow).
  */
 
+/** Default result limit for web_search. */
+export const DEFAULT_SEARCH_LIMIT = 5;
+
 /** Input for a web search. */
 export interface WebSearchInput {
   /** Search query. */

@@ -7,7 +7,7 @@ export default function grapi(pi: ExtensionAPI): void {
   let missingKeyNotified = false;
 
   pi.on("session_start", async (_event, ctx: ExtensionContext) => {
-    if (!config.webSearchProvider && !missingKeyNotified) {
+    if (!config.webSearchProvider && !missingKeyNotified && ctx.hasUI) {
       missingKeyNotified = true;
       ctx.ui.notify("TAVILY_API_KEY is not set; web_search tool is unavailable.", "warning");
     }

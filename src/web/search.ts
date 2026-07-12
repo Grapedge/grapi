@@ -6,15 +6,16 @@ import {
   formatSize,
   truncateHead,
   type AgentToolResult,
+  type AgentToolUpdateCallback,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import type { WebSearchProvider, WebSearchResponse } from "./types.js";
+import { DEFAULT_SEARCH_LIMIT, type WebSearchProvider, type WebSearchResponse } from "./types.js";
 
 const WebSearchParameters = Type.Object({
   query: Type.String({ description: "Search query" }),
   limit: Type.Optional(
     Type.Number({
-      default: 5,
+      default: DEFAULT_SEARCH_LIMIT,
       minimum: 1,
       maximum: 10,
       description: "Maximum number of results (1-10, default 5)",
@@ -41,7 +42,7 @@ export function registerWebSearchTool(pi: ExtensionAPI, provider?: WebSearchProv
       _toolCallId: string,
       params: { query: string; limit?: number },
       _signal: AbortSignal | undefined,
-      _onUpdate: unknown,
+      _onUpdate: AgentToolUpdateCallback | undefined,
       _ctx: ExtensionContext,
     ): Promise<AgentToolResult<Partial<WebSearchResponse>>> {
       const result = await provider.search({

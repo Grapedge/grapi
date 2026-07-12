@@ -8,6 +8,7 @@ import type {
   WebSearchResponse,
   WebSearchResult,
 } from "./types.js";
+import { DEFAULT_SEARCH_LIMIT } from "./types.js";
 
 interface TavilySearchResult {
   title: string;
@@ -57,23 +58,10 @@ export class TavilyProvider implements WebSearchProvider, WebExtractProvider {
   ) {}
 
   async search(input: WebSearchInput): Promise<WebSearchResponse> {
-    const response = await fetch(`${this.baseUrl}/search`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        query: input.query,
-        max_results: input.limit ?? 5,
-      }),
+    const data = await this.request<TavilySearchResponse>("/search", {
+      query: input.query,
+      max_results: input.limit ?? DEFAULT_SEARCH_LIMIT,
     });
-
-    if (!response.ok) {
-      throw new Error(`Tavily search failed: ${response.status} ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as TavilySearchResponse;
 
     return {
       query: data.query,
@@ -86,23 +74,10 @@ export class TavilyProvider implements WebSearchProvider, WebExtractProvider {
   }
 
   async extract(input: WebExtractInput): Promise<WebExtractResponse> {
-    const response = await fetch(`${this.baseUrl}/extract`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        urls: [input.url],
-        format: "markdown",
-      }),
+    const data = await this.request<TavilyExtractResponse>("/extract", {
+      urls: [input.url],
+      format: "markdown",
     });
-
-    if (!response.ok) {
-      throw new Error(`Tavily extract failed: ${response.status} ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as TavilyExtractResponse;
 
     return {
       results: data.results.map((r) => this.toWebExtractResult(r)),
@@ -111,6 +86,24 @@ export class TavilyProvider implements WebSearchProvider, WebExtractProvider {
       responseTime: data.response_time,
       raw: data,
     };
+  }
+
+  private async request<T>(endpoint: string, body: unknown): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const action = endpoint === "/search" ? "search" : "extract";
+      throw new Error(`Tavily ${action} failed: ${response.status} ${response.statusText}`);
+    }
+
+    return (await response.json()) as T;
   }
 
   private toWebSearchResult(result: TavilySearchResult): WebSearchResult {
