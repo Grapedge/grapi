@@ -1,6 +1,6 @@
 {
   "name": "grapi",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Personal pi extensions",
   "keywords": [
     "pi-package"
@@ -16,7 +16,10 @@
     "url": "git+https://github.com/Grapedge/grapi.git"
   },
   "files": [
-    "src"
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/test-helpers.ts",
+    "!src/**/.gitkeep"
   ],
   "type": "module",
   "scripts": {
@@ -28,7 +31,7 @@
     "lint:fix": "oxlint . --fix",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "prepare": "husky"
+    "prepare": "node .husky/install.mjs"
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.80.6",
