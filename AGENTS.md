@@ -1,5 +1,12 @@
 ## Agent 技能
 
+### 代码规范与测试规范
+
+- 代码规范：`docs/coding-standards.md`（命名、TypeScript 风格、工具 / provider 设计模式）。
+- 测试规范：`docs/testing-standards.md`（测试分层、 seam 约定、门控 smoke、TDD 循环）。
+
+写代码或测试前先读这两份。工具设计参考 `src/web/tavily.ts`，测试参考 `src/web/tavily.test.ts`。
+
 ### Issue tracker
 
 Issues 跟踪在这个仓库的 GitHub Issues 中。详见 `docs/agents/issue-tracker.md`。
