@@ -1,20 +1,7 @@
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import webSearchExtension, {
-  createWebSearchToolDefinition,
-  registerWebSearchTool,
-} from "./web-search.js";
+import { describe, expect, it, vi } from "vitest";
+import { createWebSearchToolDefinition, registerWebSearchTool } from "./web-search.js";
+import { FAKE_CTX, fakeTheme } from "./test-helpers.js";
 import type { WebSearchProvider, WebSearchResponse } from "./types.js";
-
-function fakeTheme(): {
-  fg: (color: string, text: string) => string;
-  bold: (text: string) => string;
-} {
-  return {
-    fg: (_color: string, text: string) => text,
-    bold: (text: string) => text,
-  };
-}
 
 function createFakeProvider(response: WebSearchResponse): WebSearchProvider & {
   search: ReturnType<typeof vi.fn>;
@@ -27,12 +14,6 @@ function textContentOf(result: {
 }): string {
   return result.content.find((c) => c.type === "text")?.text ?? "";
 }
-
-const FAKE_CTX = {
-  mode: "print",
-  hasUI: false,
-  isProjectTrusted: () => true,
-} as ExtensionContext;
 
 describe("createWebSearchToolDefinition #unit", () => {
   describe("when the provider returns results", () => {
@@ -293,95 +274,6 @@ describe("createWebSearchToolDefinition #unit", () => {
       expect(rendered).toContain("1. Example: https://example.com");
       expect(rendered).toContain("2. Another: https://another.com");
     });
-  });
-});
-
-describe("webSearchExtension #unit", () => {
-  beforeEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  function createFakePI(): {
-    pi: ExtensionAPI;
-    registeredTools: unknown[];
-    notifications: Array<{ message: string; type: string }>;
-    triggerSessionStart: (hasUI: boolean) => Promise<void>;
-  } {
-    const registeredTools: unknown[] = [];
-    const notifications: Array<{ message: string; type: string }> = [];
-    const handlers = new Map<
-      string,
-      Array<(event: unknown, ctx: ExtensionContext) => Promise<void>>
-    >();
-
-    const pi = {
-      registerTool: (tool: unknown) => registeredTools.push(tool),
-      on: (event: string, handler: (event: unknown, ctx: ExtensionContext) => Promise<void>) => {
-        const list = handlers.get(event) ?? [];
-        list.push(handler);
-        handlers.set(event, list);
-      },
-    } as unknown as ExtensionAPI;
-
-    return {
-      pi,
-      registeredTools,
-      notifications,
-      triggerSessionStart: async (hasUI: boolean) => {
-        const ctx = {
-          mode: hasUI ? "tui" : "print",
-          hasUI,
-          ui: {
-            notify: (message: string, type: string) => {
-              notifications.push({ message, type });
-            },
-          },
-        } as unknown as ExtensionContext;
-        for (const handler of handlers.get("session_start") ?? []) {
-          await handler({}, ctx);
-        }
-      },
-    };
-  }
-
-  it("registers the tool and does not notify when the API key is present", async () => {
-    const { pi, registeredTools, notifications, triggerSessionStart } = createFakePI();
-
-    vi.stubEnv("TAVILY_API_KEY", "test-key");
-    webSearchExtension(pi);
-    await triggerSessionStart(true);
-
-    expect(registeredTools).toHaveLength(1);
-    expect(registeredTools[0]).toMatchObject({ name: "web_search" });
-    expect(notifications).toHaveLength(0);
-  });
-
-  it("does not register the tool and notifies once when the API key is missing", async () => {
-    const { pi, registeredTools, notifications, triggerSessionStart } = createFakePI();
-
-    vi.stubEnv("TAVILY_API_KEY", "");
-    webSearchExtension(pi);
-    await triggerSessionStart(true);
-    await triggerSessionStart(true);
-
-    expect(registeredTools).toHaveLength(0);
-    expect(notifications).toHaveLength(1);
-    expect(notifications[0]?.message).toContain("web_search");
-    expect(notifications[0]?.type).toBe("warning");
-  });
-
-  it("does not notify in non-UI modes even when the API key is missing", async () => {
-    const { pi, notifications, triggerSessionStart } = createFakePI();
-
-    vi.stubEnv("TAVILY_API_KEY", "");
-    webSearchExtension(pi);
-    await triggerSessionStart(false);
-
-    expect(notifications).toHaveLength(0);
   });
 });
 

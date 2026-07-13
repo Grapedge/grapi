@@ -62,8 +62,7 @@
   },
   "pi": {
     "extensions": [
-      "./src/web/web-search.ts",
-      "./src/web/web-extract.ts"
+      "./src/web/index.ts"
     ]
   }
 }

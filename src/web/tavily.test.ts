@@ -82,6 +82,7 @@ describe("TavilyProvider #unit", () => {
           {
             url: "https://example.com",
             raw_content: "# Hello",
+            title: "Hello World",
             images: ["https://example.com/i.png"],
             favicon: "https://example.com/f.ico",
           },
@@ -97,6 +98,7 @@ describe("TavilyProvider #unit", () => {
         {
           url: "https://example.com",
           content: "# Hello",
+          title: "Hello World",
           images: ["https://example.com/i.png"],
           favicon: "https://example.com/f.ico",
         },

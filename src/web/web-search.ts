@@ -7,7 +7,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { type Static, Type } from "typebox";
-import { TavilyProvider } from "./tavily.js";
+import { wrapUntrustedContent } from "./untrusted-content.js";
 import { DEFAULT_SEARCH_LIMIT, type WebSearchProvider, type WebSearchResponse } from "./types.js";
 
 const webSearchSchema = Type.Object({
@@ -46,20 +46,9 @@ function clampLimit(limit: number | undefined): number {
 }
 
 const MAX_RESULT_CONTENT_LENGTH = 2000;
-const UNTRUSTED_TAG = "untrusted_tool_result";
-
 function truncateResultContent(content: string): string {
   if (content.length <= MAX_RESULT_CONTENT_LENGTH) return content;
   return `${content.slice(0, MAX_RESULT_CONTENT_LENGTH)}…`;
-}
-
-function escapeUntrustedDelimiter(text: string): string {
-  // Prevent external content from closing the wrapper tag.
-  return text.replaceAll(`</${UNTRUSTED_TAG}>`, `<\\/${UNTRUSTED_TAG}>`);
-}
-
-function wrapUntrustedContent(text: string): string {
-  return `<${UNTRUSTED_TAG}>\n${escapeUntrustedDelimiter(text)}\n</${UNTRUSTED_TAG}>`;
 }
 
 function formatSearchResults(response: WebSearchResponse): string {
@@ -135,22 +124,7 @@ export function createWebSearchToolDefinition(provider: WebSearchProvider) {
   });
 }
 
-export function registerWebSearchTool(pi: ExtensionAPI, provider: WebSearchProvider): void {
+export function registerWebSearchTool(pi: ExtensionAPI, provider?: WebSearchProvider): void {
+  if (!provider) return;
   pi.registerTool(createWebSearchToolDefinition(provider));
-}
-
-export default function webSearchExtension(pi: ExtensionAPI): void {
-  const apiKey = process.env.TAVILY_API_KEY?.trim();
-  if (!apiKey) {
-    let missingKeyNotified = false;
-    pi.on("session_start", async (_event, ctx: ExtensionContext) => {
-      if (!missingKeyNotified && ctx.hasUI) {
-        missingKeyNotified = true;
-        ctx.ui.notify("TAVILY_API_KEY is not set; web_search tool is unavailable.", "warning");
-      }
-    });
-    return;
-  }
-
-  registerWebSearchTool(pi, new TavilyProvider(apiKey));
 }

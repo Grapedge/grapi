@@ -28,6 +28,7 @@ interface TavilySearchWireResponse {
 interface TavilyExtractWireResult {
   url: string;
   raw_content: string;
+  title?: string;
   images?: string[];
   favicon?: string;
 }
@@ -94,6 +95,7 @@ export class TavilyProvider implements WebSearchProvider, WebExtractProvider {
       results: data.results.map((r) => ({
         url: r.url,
         content: r.raw_content,
+        title: r.title,
         images: r.images,
         favicon: r.favicon,
       })),

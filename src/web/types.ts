@@ -61,6 +61,8 @@ export interface WebExtractResult {
   url: string;
   /** Extracted page content (markdown by default). */
   content: string;
+  /** Page title, if available. */
+  title?: string | undefined;
   /** Image URLs found on the page, if available. */
   images?: string[] | undefined;
   /** Favicon URL, if available. */

@@ -10,4 +10,11 @@ grapi 是我的个人 pi extensions。
 
 ## 验证
 
-开发完成后，执行 `npm run check` 检查错误。
+1. 开发完成后，执行 `npm run check` 检查错误。
+2. （可选）在真实环境中验证扩展效果：
+
+```bash
+pi -e <entry-file> \
+  --no-session \
+  -p "你的提示词"
+```
