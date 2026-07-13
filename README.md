@@ -5,7 +5,7 @@ grapi 是我个人的 [pi](https://pi.dev) 扩展。
 ## 安装
 
 ```bash
-pi install npm:grapi
+pi install npm:@grapedge/grapi
 ```
 
 ## 配置
