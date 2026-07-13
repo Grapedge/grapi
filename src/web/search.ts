@@ -1,17 +1,18 @@
 import {
+  type AgentToolResult,
+  type AgentToolUpdateCallback,
   DEFAULT_MAX_BYTES,
   DEFAULT_MAX_LINES,
+  defineTool,
   type ExtensionAPI,
   type ExtensionContext,
   formatSize,
   truncateHead,
-  type AgentToolResult,
-  type AgentToolUpdateCallback,
 } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
-import { DEFAULT_SEARCH_LIMIT, type WebSearchProvider, type WebSearchResponse } from "./types.js";
+import { type Static, Type } from "typebox";
+import { DEFAULT_SEARCH_LIMIT, type WebSearchProvider, type WebSearchResult } from "./types.js";
 
-const WebSearchParameters = Type.Object({
+const webSearchSchema = Type.Object({
   query: Type.String({ description: "Search query" }),
   limit: Type.Optional(
     Type.Number({
@@ -23,12 +24,18 @@ const WebSearchParameters = Type.Object({
   ),
 });
 
-export function registerWebSearchTool(pi: ExtensionAPI, provider?: WebSearchProvider): void {
-  if (!provider) {
-    return;
-  }
+export type WebSearchToolInput = Static<typeof webSearchSchema>;
 
-  pi.registerTool({
+export interface WebSearchToolDetails {
+  query: string;
+  results: WebSearchResult[];
+  answer?: string | undefined;
+  usage?: unknown | undefined;
+  responseTime?: number | undefined;
+}
+
+export function createWebSearchToolDefinition(provider: WebSearchProvider) {
+  return defineTool({
     name: "web_search",
     label: "Web Search",
     description:
@@ -37,18 +44,15 @@ export function registerWebSearchTool(pi: ExtensionAPI, provider?: WebSearchProv
     promptGuidelines: [
       "Use web_search when the user asks about recent events, current facts, or anything that may have changed after your knowledge cutoff.",
     ],
-    parameters: WebSearchParameters,
+    parameters: webSearchSchema,
     async execute(
       _toolCallId: string,
-      params: { query: string; limit?: number },
+      { query, limit }: WebSearchToolInput,
       _signal: AbortSignal | undefined,
-      _onUpdate: AgentToolUpdateCallback | undefined,
+      _onUpdate: AgentToolUpdateCallback<WebSearchToolDetails> | undefined,
       _ctx: ExtensionContext,
-    ): Promise<AgentToolResult<Partial<WebSearchResponse>>> {
-      const result = await provider.search({
-        query: params.query,
-        limit: params.limit,
-      });
+    ): Promise<AgentToolResult<WebSearchToolDetails>> {
+      const result = await provider.search({ query, limit });
 
       let markdown = result.results
         .map((r, index) => {
@@ -86,4 +90,9 @@ export function registerWebSearchTool(pi: ExtensionAPI, provider?: WebSearchProv
       };
     },
   });
+}
+
+export function registerWebSearchTool(pi: ExtensionAPI, provider?: WebSearchProvider): void {
+  if (!provider) return;
+  pi.registerTool(createWebSearchToolDefinition(provider));
 }
