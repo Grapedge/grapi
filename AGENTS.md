@@ -1,41 +1,13 @@
-## Agent 技能
+# AGENTS.md
 
-### 代码规范与测试规范
+grapi 是我的个人 pi extensions。
 
-- 代码规范：`docs/CODING_STANDARDS.md`（命名、TypeScript 风格、工具 / provider 设计模式）。
-- 测试规范：`docs/testing-standards.md`（测试分层、 seam 约定、门控 smoke、TDD 循环）。
+## 文档
 
-写代码或测试前先读这两份。工具设计参考 `src/web/tavily.ts`，测试参考 `src/web/tavily.test.ts`。
+- 当需要设计 extension 时，阅读 `docs/HARNESS_DESIGN.md`。
+- 当需要编写代码时，阅读 `docs/CODING_STANDARDS.md`。
+- 当需要编写测试时，阅读 `docs/TESTING_STANDARDS.md`。
 
-### Issue tracker
+## 验证
 
-Issues 跟踪在这个仓库的 GitHub Issues 中。详见 `docs/agents/issue-tracker.md`。
-
-### Domain docs
-
-单上下文仓库：在仓库根目录读取 `CONTEXT.md` 和 `docs/adr/`。详见 `docs/agents/domain.md`。
-
-### E2E 测试
-
-使用 pi CLI 直接加载本扩展进行端到端验证：
-
-```bash
-# 1. 设置 Tavily API key（可从 https://tavily.com 获取）
-export TAVILY_API_KEY=<your-key>
-
-# 2. 在仓库根目录启动 pi 并加载扩展
-pi -e ./src/index.ts
-
-# 3. 在 pi 中验证 web_search 已注册（例如询问）
-#    "请列出当前可用的工具" 或 "用 web_search 搜索今日新闻"
-```
-
-若未设置 `TAVILY_API_KEY`，扩展仍会加载，但 `web_search` 不会注册，并在首次 `session_start` 时通过 `ctx.ui.notify` 提示一次。
-
-非交互式验证示例（print 模式）：
-
-```bash
-pi -e ./src/index.ts -p "请列出当前所有可用工具" --provider zai-coding-cn --model glm-5.2
-```
-
-> 注意：print 模式下 `ctx.ui.notify` 不会触发，因此缺 key 通知不可见，但可通过工具列表确认 `web_search` 是否出现。
+开发完成后，执行 `npm run check` 检查错误。

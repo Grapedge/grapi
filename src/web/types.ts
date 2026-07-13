@@ -14,6 +14,8 @@ export interface WebSearchInput {
   query: string;
   /** Maximum number of results to return. */
   limit?: number | undefined;
+  /** Abort signal for the underlying request. */
+  signal?: AbortSignal | undefined;
 }
 
 /** A single web search result. */
@@ -24,8 +26,6 @@ export interface WebSearchResult {
   url: string;
   /** Snippet or summary of the page. */
   content: string;
-  /** Relevance score, if the provider provides one. */
-  score?: number | undefined;
   /** Publication date, if known. */
   publishedAt?: string | undefined;
 }
@@ -38,12 +38,8 @@ export interface WebSearchResponse {
   results: WebSearchResult[];
   /** Optional provider-generated answer. */
   answer?: string | undefined;
-  /** Provider usage metadata, if available. */
-  usage?: unknown | undefined;
   /** Response time in seconds, if available. */
   responseTime?: number | undefined;
-  /** Raw provider response for debugging. */
-  raw?: unknown | undefined;
 }
 
 /** Capability contract for web search backends. */
@@ -55,6 +51,8 @@ export interface WebSearchProvider {
 export interface WebExtractInput {
   /** URL to extract content from. */
   url: string;
+  /** Abort signal for the underlying request. */
+  signal?: AbortSignal | undefined;
 }
 
 /** A single extracted page. */
@@ -75,12 +73,8 @@ export interface WebExtractResponse {
   results: WebExtractResult[];
   /** URLs that could not be extracted. */
   failed: Array<{ url: string; error: string }>;
-  /** Provider usage metadata, if available. */
-  usage?: unknown | undefined;
   /** Response time in seconds, if available. */
   responseTime?: number | undefined;
-  /** Raw provider response for debugging. */
-  raw?: unknown | undefined;
 }
 
 /** Capability contract for web extract backends. */

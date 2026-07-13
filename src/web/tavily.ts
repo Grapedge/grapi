@@ -13,7 +13,6 @@ interface TavilySearchWireResult {
   title: string;
   url: string;
   content: string;
-  score?: number;
   published_date?: string;
 }
 
@@ -23,7 +22,6 @@ interface TavilySearchWireResponse {
   results: TavilySearchWireResult[];
   answer?: string;
   response_time?: string | number;
-  usage?: unknown;
 }
 
 /** Tavily /extract wire result. */
@@ -45,7 +43,6 @@ interface TavilyExtractWireResponse {
   results: TavilyExtractWireResult[];
   failed_results?: TavilyExtractWireFailedResult[];
   response_time?: string | number;
-  usage?: unknown;
 }
 
 /**
@@ -54,37 +51,45 @@ interface TavilyExtractWireResponse {
  * with zero runtime dependencies.
  */
 export class TavilyProvider implements WebSearchProvider, WebExtractProvider {
-  constructor(
-    private readonly apiKey: string,
-    private readonly baseUrl = "https://api.tavily.com",
-  ) {}
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+
+  constructor(apiKey: string, baseUrl = "https://api.tavily.com") {
+    this.apiKey = apiKey;
+    this.baseUrl = baseUrl;
+  }
 
   async search(input: WebSearchInput): Promise<WebSearchResponse> {
-    const data = await this.post<TavilySearchWireResponse>("/search", {
-      query: input.query,
-      max_results: input.limit ?? DEFAULT_SEARCH_LIMIT,
-    });
+    const data = await this.post<TavilySearchWireResponse>(
+      "/search",
+      {
+        query: input.query,
+        max_results: input.limit ?? DEFAULT_SEARCH_LIMIT,
+      },
+      input.signal,
+    );
     return {
       query: data.query,
       results: data.results.map((r) => ({
         title: r.title,
         url: r.url,
         content: r.content,
-        score: r.score,
         publishedAt: r.published_date,
       })),
       answer: data.answer,
-      usage: data.usage,
       responseTime: normalizeResponseTime(data.response_time),
-      raw: data,
     };
   }
 
   async extract(input: WebExtractInput): Promise<WebExtractResponse> {
-    const data = await this.post<TavilyExtractWireResponse>("/extract", {
-      urls: [input.url],
-      format: "markdown",
-    });
+    const data = await this.post<TavilyExtractWireResponse>(
+      "/extract",
+      {
+        urls: [input.url],
+        format: "markdown",
+      },
+      input.signal,
+    );
     return {
       results: data.results.map((r) => ({
         url: r.url,
@@ -93,13 +98,11 @@ export class TavilyProvider implements WebSearchProvider, WebExtractProvider {
         favicon: r.favicon,
       })),
       failed: data.failed_results?.map((f) => ({ url: f.url, error: f.error })) ?? [],
-      usage: data.usage,
       responseTime: normalizeResponseTime(data.response_time),
-      raw: data,
     };
   }
 
-  private async post<T>(path: string, body: unknown): Promise<T> {
+  private async post<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: "POST",
       headers: {
@@ -107,6 +110,7 @@ export class TavilyProvider implements WebSearchProvider, WebExtractProvider {
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify(body),
+      ...(signal ? { signal } : {}),
     });
     if (!response.ok) {
       let message = `Tavily POST ${path} failed: ${response.status} ${response.statusText}`;

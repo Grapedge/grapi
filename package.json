@@ -16,13 +16,13 @@
     "url": "git+https://github.com/Grapedge/grapi.git"
   },
   "files": [
-    "src",
-    "CHANGELOG.md"
+    "src"
   ],
   "type": "module",
   "scripts": {
-    "dev": "vitest",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",
     "lint:fix": "oxlint . --fix",
@@ -32,7 +32,9 @@
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.80.6",
+    "@earendil-works/pi-tui": "^0.80.6",
     "@types/node": "^26.1.1",
+    "@vitest/coverage-v8": "^4.1.10",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
     "oxfmt": "^0.58.0",
@@ -43,6 +45,7 @@
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
     "typebox": "*"
   },
   "lint-staged": {
@@ -59,7 +62,8 @@
   },
   "pi": {
     "extensions": [
-      "./src/index.ts"
+      "./src/web/web-search.ts",
+      "./src/web/web-extract.ts"
     ]
   }
 }

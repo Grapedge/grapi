@@ -20,7 +20,7 @@ function givenTavilyResponds(
   } as Response);
 }
 
-describe("TavilyProvider", () => {
+describe("TavilyProvider #unit", () => {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
@@ -32,6 +32,7 @@ describe("TavilyProvider", () => {
 
   describe("search", () => {
     it("maps a Tavily search response to WebSearchResponse", async () => {
+      // Arrange
       givenTavilyResponds({
         query: "Leo Messi",
         results: [
@@ -39,24 +40,24 @@ describe("TavilyProvider", () => {
             title: "Lionel Messi - Wikipedia",
             url: "https://en.wikipedia.org/wiki/Lionel_Messi",
             content: "Lionel Andrés Messi is an Argentine footballer.",
-            score: 0.95,
           },
         ],
         answer: "An Argentine footballer.",
         response_time: 1.67,
         request_id: "abc",
       });
-
       const provider = new TavilyProvider("test-key");
+
+      // Act
       const result = await provider.search({ query: "Leo Messi" });
 
+      // Assert
       expect(result.query).toBe("Leo Messi");
       expect(result.results).toEqual([
         {
           title: "Lionel Messi - Wikipedia",
           url: "https://en.wikipedia.org/wiki/Lionel_Messi",
           content: "Lionel Andrés Messi is an Argentine footballer.",
-          score: 0.95,
           publishedAt: undefined,
         },
       ]);
@@ -67,7 +68,9 @@ describe("TavilyProvider", () => {
     it("normalizes a string response_time to a number", async () => {
       givenTavilyResponds({ query: "hi", results: [], response_time: "2.5" });
       const provider = new TavilyProvider("test-key");
+
       const result = await provider.search({ query: "hi" });
+
       expect(result.responseTime).toBe(2.5);
     });
   });
@@ -86,8 +89,8 @@ describe("TavilyProvider", () => {
         failed_results: [{ url: "https://bad.example", error: "Could not fetch" }],
         response_time: 1.23,
       });
-
       const provider = new TavilyProvider("test-key");
+
       const result = await provider.extract({ url: "https://example.com" });
 
       expect(result.results).toEqual([
@@ -110,6 +113,7 @@ describe("TavilyProvider", () => {
         { ok: false, status: 401, statusText: "Unauthorized" },
       );
       const provider = new TavilyProvider("bad-key");
+
       await expect(provider.search({ query: "hi" })).rejects.toThrow("Invalid API key");
     });
 
@@ -119,14 +123,13 @@ describe("TavilyProvider", () => {
         { ok: false, status: 500, statusText: "Internal Server Error" },
       );
       const provider = new TavilyProvider("key");
+
       await expect(provider.search({ query: "hi" })).rejects.toThrow(/500/);
     });
   });
 });
 
-describe.skipIf(!process.env.TAVILY_API_KEY)("live Tavily API (requires TAVILY_API_KEY)", () => {
-  // Seam 2: real HTTP contract. Validates POST /search, Bearer auth and wire
-  // parsing against the actual endpoint — the mocked tests above cannot.
+describe.skipIf(!process.env.TAVILY_API_KEY)("live Tavily API #smoke", () => {
   it("searches the real Tavily /search endpoint end-to-end", async () => {
     const provider = new TavilyProvider(process.env.TAVILY_API_KEY!);
     const result = await provider.search({ query: "hello world", limit: 1 });
