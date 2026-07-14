@@ -4,11 +4,11 @@
 
 ## 测试分层
 
-| 层       | 对象                             | 手段                                 | 位置                       |
-| -------- | -------------------------------- | ------------------------------------ | -------------------------- |
-| L1 单元  | 纯函数、provider、工具 `execute` | mock 系统边界（fetch、fs）           | `*.test.ts`（co-located）  |
-| L2 集成  | 扩展 × AgentSession 交互         | pi 的 `AgentSession` + faux provider | `tests/`（按需引入）       |
-| L3 smoke | 真实 HTTP 契约 / 真实扩展加载    | `describe.skipIf(!env.KEY)`；`pi -e` | co-located 或 `tests/e2e/` |
+| 层       | 对象                             | 手段                                           | 位置                       |
+| -------- | -------------------------------- | ---------------------------------------------- | -------------------------- |
+| L1 单元  | 纯函数、provider、工具 `execute` | mock 系统边界（fetch、fs）                     | `*.test.ts`（co-located）  |
+| L2 集成  | 扩展 × AgentSession 交互         | pi 的 `AgentSession` + faux provider           | `tests/`（按需引入）       |
+| L3 smoke | 真实 HTTP 契约 / 真实扩展加载    | `describe.skipIf(!process.env.SMOKE)`；`pi -e` | co-located 或 `tests/e2e/` |
 
 当前以 L1 + L3 为主。L2 在需要验证扩展与 agent 全链路交互时引入。
 
@@ -88,8 +88,10 @@ expect(result.content[0].text).toContain("...");
 
 ## 门控 smoke
 
+smoke 不由 key 是否存在决定，而是由专门的 `SMOKE` 开关门控，避免 `npm run check` 误打真实三方 API：
+
 ```ts
-describe.skipIf(!process.env.TAVILY_API_KEY)("live Tavily API #smoke", () => {
+describe.skipIf(!process.env.SMOKE)("live Tavily API #smoke", () => {
   it("searches the real endpoint", async () => {
     const provider = new TavilyProvider(process.env.TAVILY_API_KEY!);
     const result = await provider.search({ query: "hello", limit: 1 });
@@ -98,7 +100,8 @@ describe.skipIf(!process.env.TAVILY_API_KEY)("live Tavily API #smoke", () => {
 });
 ```
 
-- CI 无 key 自动跳过；本地有 key 时跑。
+- `npm run check` / `npm run test` 默认不设 `SMOKE`，smoke 一律跳过；保持套件稳定且不依赖网络。
+- 手动跑 smoke：`npm run test:smoke`（等价于 `SMOKE=1 vitest run -t #smoke`），需同时设置对应 key（`TAVILY_API_KEY` / `FAL_KEY`）。
 - 这是防御实现细节错误躲过单测的最终防线。
 
 ## 反模式

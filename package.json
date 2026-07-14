@@ -25,6 +25,7 @@
   "scripts": {
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "test": "vitest run",
+    "test:smoke": "SMOKE=1 vitest run -t \"#smoke\"",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",
@@ -32,6 +33,9 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "prepare": "node .husky/install.mjs"
+  },
+  "dependencies": {
+    "@fal-ai/client": "^1.10.1"
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.80.6",
@@ -65,7 +69,8 @@
   },
   "pi": {
     "extensions": [
-      "./src/web/index.ts"
+      "./src/web/index.ts",
+      "./src/image-generation/index.ts"
     ]
   }
 }

@@ -131,7 +131,7 @@ describe("TavilyProvider #unit", () => {
   });
 });
 
-describe.skipIf(!process.env.TAVILY_API_KEY)("live Tavily API #smoke", () => {
+describe.skipIf(!process.env.SMOKE)("live Tavily API #smoke", () => {
   it("searches the real Tavily /search endpoint end-to-end", async () => {
     const provider = new TavilyProvider(process.env.TAVILY_API_KEY!);
     const result = await provider.search({ query: "hello world", limit: 1 });

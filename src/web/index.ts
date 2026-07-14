@@ -1,13 +1,12 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { loadWebConfig } from "./config.js";
 import { TavilyProvider } from "./tavily.js";
 import { registerWebExtractTool } from "./web-extract.js";
 import { registerWebSearchTool } from "./web-search.js";
 
 export default function webExtension(pi: ExtensionAPI): void {
-  const config = loadWebConfig();
+  const apiKey = process.env.TAVILY_API_KEY?.trim();
 
-  if (!config.apiKey) {
+  if (!apiKey) {
     let missingKeyNotified = false;
     pi.on("session_start", async (_event, ctx: ExtensionContext) => {
       if (!missingKeyNotified && ctx.hasUI) {
@@ -21,7 +20,7 @@ export default function webExtension(pi: ExtensionAPI): void {
     return;
   }
 
-  const provider = new TavilyProvider(config.apiKey);
+  const provider = new TavilyProvider(apiKey);
   registerWebSearchTool(pi, provider);
   registerWebExtractTool(pi, provider);
 }
